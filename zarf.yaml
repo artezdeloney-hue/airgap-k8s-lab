@@ -1,0 +1,18 @@
+kind: ZarfPackageConfig
+metadata:
+  name: podinfo
+  version: 0.1.0
+  description: podinfo packaged for disconnected delivery
+
+components:
+  - name: podinfo
+    required: true
+    charts:
+      - name: podinfo
+        version: 0.1.0
+        namespace: podinfo
+        localPath: charts/podinfo
+        valuesFiles:
+          - charts/podinfo/values-lab.yaml
+    images:
+      - ghcr.io/stefanprodan/podinfo:6.7.1
