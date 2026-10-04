@@ -1,18 +1,17 @@
 kind: ZarfPackageConfig
 metadata:
-  name: podinfo
-  version: 0.1.1
-  description: podinfo packaged for disconnected delivery
-
+  name: airgap-api
+  version: 0.2.0
+  description: Python API packaged for disconnected delivery
 components:
-  - name: podinfo
+  - name: airgap-api
     required: true
     charts:
-      - name: podinfo
+      - name: airgap-api
         version: 0.1.0
-        namespace: podinfo
-        localPath: charts/podinfo
+        namespace: airgap-api
+        localPath: charts/airgap-api
         valuesFiles:
-          - charts/podinfo/values-lab.yaml
+          - charts/airgap-api/values-lab.yaml
     images:
-      - ghcr.io/stefanprodan/podinfo:6.7.1
+      - airgap-api:0.1.0

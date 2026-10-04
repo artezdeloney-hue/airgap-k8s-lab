@@ -1,0 +1,14 @@
+replicaCount: 3
+image:
+  repository: airgap-api
+  tag: "0.1.0"
+service:
+  port: 8080
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
