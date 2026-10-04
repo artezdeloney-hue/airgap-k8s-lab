@@ -4,6 +4,12 @@ A hands-on lab that takes an application from source to a running deployment on 
 
 This mirrors how software is delivered to disconnected and classified networks: build on the connected side, carry one artifact across, deploy on the far side.
 
+## Target architecture
+
+![Architecture: connected side, air gap, disconnected side](docs/architecture.png)
+
+The diagram shows the finished design. Stages marked DONE are in this repo today; the rest are on the roadmap below.
+
 ## What is in this repo
 
 | Path | Purpose |
