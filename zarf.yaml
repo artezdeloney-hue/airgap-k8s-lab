@@ -1,7 +1,7 @@
 kind: ZarfPackageConfig
 metadata:
   name: podinfo
-  version: 0.1.0
+  version: 0.1.1
   description: podinfo packaged for disconnected delivery
 
 components:
