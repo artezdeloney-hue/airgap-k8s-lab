@@ -14,8 +14,9 @@ The diagram shows the finished design. Stages marked DONE are in this repo today
 
 | Path | Purpose |
 |---|---|
-| `charts/podinfo/` | Helm chart for the application (an API service) |
-| `charts/podinfo/values-lab.yaml` | Environment-specific settings: image, port, replica count |
+| `app/` | The application: a small Python API (FastAPI) with `/health` and `/info`, and its Dockerfile |
+| `charts/airgap-api/` | Helm chart for the application |
+| `charts/airgap-api/values-lab.yaml` | Environment-specific settings: image, port, replica count, health probes |
 | `zarf.yaml` | Zarf package definition: which chart and which images to bundle |
 
 Built packages (`*.tar.zst`) are not committed. They are rebuilt from source.
@@ -29,10 +30,10 @@ macOS (Apple Silicon)
         ├── 1 control plane node
         ├── 2 worker nodes
         ├── zarf namespace      in-cluster registry + admission agent
-        └── podinfo namespace   the application, 3 replicas
+        └── airgap-api namespace   the application, 3 replicas behind a Service
 ```
 
-`zarf init` installs a registry in the cluster and an agent that rewrites every pod's image reference to that registry. A pod that asks for `ghcr.io/stefanprodan/podinfo:6.7.1` actually runs `127.0.0.1:31999/stefanprodan/podinfo:6.7.1-zarf-<checksum>`.
+`zarf init` installs a registry in the cluster and an agent that rewrites every pod's image reference to that registry. A pod that asks for `airgap-api:0.1.0` actually runs that image from `127.0.0.1:31999`, the in-cluster registry.
 
 ## Reproduce it
 
@@ -47,21 +48,31 @@ k3d cluster create lab --servers 1 --agents 2
 zarf tools download-init
 zarf init --confirm
 
-# 3. Build the package (the only step that needs internet)
+# 3. Build the application image
+docker build -t airgap-api:0.1.0 app/
+
+# 4. Build the package (the last step that needs internet)
+#    The image is taken from the local Docker engine; with Colima, point Zarf at its socket.
+export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
 zarf package create . --confirm
 
-# 4. Deploy from the package file
-zarf package deploy zarf-package-podinfo-arm64-0.1.1.tar.zst --confirm
+# 5. Deploy from the package file
+zarf package deploy zarf-package-airgap-api-arm64-0.2.0.tar.zst --confirm
 
-# 5. Verify the image came from the in-cluster registry
-kubectl get pods -n podinfo -o jsonpath='{.items[0].spec.containers[0].image}{"\n"}'
+# 6. Verify the image came from the in-cluster registry
+kubectl get pods -n airgap-api -o jsonpath='{.items[0].spec.containers[0].image}{"\n"}'
+
+# 7. Call the API through its Service from inside the cluster
+kubectl exec -n airgap-api deploy/airgap-api -- python -c "import urllib.request as u; [print(u.urlopen('http://airgap-api:8080/info').read().decode()) for _ in range(6)]"
 ```
+
+Step 7 returns a different pod name across requests, showing the Service spreading traffic over the replicas.
 
 ## Changing the deployment
 
 The repo is the source of truth. To change anything, such as the replica count:
 
-1. Edit `charts/podinfo/values-lab.yaml`.
+1. Edit `charts/airgap-api/values-lab.yaml`.
 2. Bump `metadata.version` in `zarf.yaml`.
 3. Rebuild with `zarf package create`.
 4. Deploy the new package.
@@ -83,7 +94,7 @@ using apps/v1: .spec.replicas
 **Diagnosis.** Listing the owners on the object showed the conflict:
 
 ```bash
-kubectl get deployment podinfo -n podinfo --show-managed-fields -o yaml
+kubectl get deployment <name> -n <namespace> --show-managed-fields -o yaml
 ```
 
 **Fix.** Removed the package so the ownership records were cleared, then deployed the new version from source.
@@ -95,7 +106,7 @@ kubectl get deployment podinfo -n podinfo --show-managed-fields -o yaml
 - [x] Multi-node Kubernetes cluster with k3d
 - [x] Application deployed with a Helm chart and environment-specific values
 - [x] Zarf package built and deployed through the in-cluster registry
-- [ ] Replace podinfo with a small Python API and its own container image
+- [x] Replace the sample app with a small Python API and its own container image
 - [ ] CI pipeline that builds, scans the image for vulnerabilities, and creates the package
 - [ ] Deploy on UDS Core
 - [ ] Terraform-built AWS infrastructure for the cluster
