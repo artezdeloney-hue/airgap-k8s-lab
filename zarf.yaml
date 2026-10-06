@@ -1,7 +1,7 @@
 kind: ZarfPackageConfig
 metadata:
   name: airgap-api
-  version: 0.2.0
+  version: 0.2.1
   description: Python API packaged for disconnected delivery
 components:
   - name: airgap-api
